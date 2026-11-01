@@ -48,7 +48,7 @@ export default function ProjectList({ projects, allTags }: { projects: ProjectWi
                     <Input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search projectsâ€¦"
+                        placeholder="Search projects"
                         aria-label="Search projects"
                     />
                 </div>
