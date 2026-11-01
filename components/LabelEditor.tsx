@@ -2,55 +2,12 @@
 
 import { useState } from "react";
 import { Trash2Icon } from "lucide-react";
-import styled from "styled-components";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createLabelAction, deleteLabelAction, updateLabelAction } from "@/lib/actions";
 import { LABEL_COLORS, LABEL_COLOR_KEYS, MAX_LABEL_LENGTH, type Label, type LabelColor } from "@/lib/types";
 
 const nextColor = (c: LabelColor) => LABEL_COLOR_KEYS[(LABEL_COLOR_KEYS.indexOf(c) + 1) % LABEL_COLOR_KEYS.length];
-
-const Wrapper = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-`;
-
-const List = styled.ul`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    max-height: 192px;
-    overflow-y: auto;
-`;
-
-const Row = styled.li`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-`;
-
-const AddRow = styled.form`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-`;
-
-const Swatch = styled.span<{ $color: string }>`
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: ${(p) => p.$color};
-`;
-
-const ErrorText = styled.p`
-    color: var(--destructive);
-    font-size: 12px;
-`;
-
-const Empty = styled.li`
-    color: var(--muted-foreground);
-`;
 
 function ColorDot({ color, onClick }: { color: LabelColor; onClick: () => void }) {
     return (
@@ -62,7 +19,7 @@ function ColorDot({ color, onClick }: { color: LabelColor; onClick: () => void }
             title="Change color"
             onClick={onClick}
         >
-            <Swatch $color={LABEL_COLORS[color]} />
+            <span className={"labelSwatch"} style={{ backgroundColor: LABEL_COLORS[color] }} />
         </Button>
     );
 }
@@ -84,7 +41,7 @@ function LabelRow({
     }
 
     return (
-        <Row>
+        <li className={"labelRow"}>
             <ColorDot color={label.color} onClick={() => onUpdate({ color: nextColor(label.color) })} />
             <Input
                 value={name}
@@ -97,7 +54,7 @@ function LabelRow({
             <Button type="button" variant="ghost" size="icon" aria-label="Delete label" onClick={onDelete}>
                 <Trash2Icon />
             </Button>
-        </Row>
+        </li>
     );
 }
 
@@ -135,8 +92,8 @@ export default function LabelEditor({ projectId, labels }: { projectId: number; 
     }
 
     return (
-        <Wrapper>
-            <List>
+        <div className={"labelEditor"}>
+            <ul className={"labelList"}>
                 {items.map((l) => (
                     <LabelRow
                         key={l.id}
@@ -145,9 +102,9 @@ export default function LabelEditor({ projectId, labels }: { projectId: number; 
                         onDelete={() => remove(l.id)}
                     />
                 ))}
-                {items.length === 0 && <Empty>No labels yet.</Empty>}
-            </List>
-            <AddRow onSubmit={add}>
+                {items.length === 0 && <li className={"labelEmpty"}>No labels yet.</li>}
+            </ul>
+            <form className={"labelAddRow"} onSubmit={add}>
                 <ColorDot color={color} onClick={() => setColor(nextColor(color))} />
                 <Input
                     value={name}
@@ -159,8 +116,8 @@ export default function LabelEditor({ projectId, labels }: { projectId: number; 
                 <Button type="submit" variant="outline">
                     Add
                 </Button>
-            </AddRow>
-            {error && <ErrorText>{error}</ErrorText>}
-        </Wrapper>
+            </form>
+            {error && <p className={"labelError"}>{error}</p>}
+        </div>
     );
 }

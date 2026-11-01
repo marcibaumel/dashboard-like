@@ -1,42 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import styled from "styled-components";
 import MarkdownView from "@/components/MarkdownView";
 import { Textarea } from "@/components/ui/input";
-
-const Tabs = styled.div`
-    display: flex;
-    gap: 4px;
-`;
-
-const Tab = styled.button<{ $active: boolean }>`
-    padding: 2px 10px;
-    border: 0;
-    border-radius: 6px;
-    background: ${(p) => (p.$active ? "var(--muted)" : "transparent")};
-    color: ${(p) => (p.$active ? "var(--foreground)" : "var(--muted-foreground)")};
-    font-size: 13px;
-    font-weight: 500;
-`;
-
-const Preview = styled.div`
-    min-height: 120px;
-    max-height: 320px;
-    overflow-y: auto;
-    padding: 8px 10px;
-    border: 1px solid var(--input);
-    border-radius: 8px;
-`;
-
-const Empty = styled.p`
-    color: var(--muted-foreground);
-`;
-
-const Hint = styled.p`
-    color: var(--muted-foreground);
-    font-size: 12px;
-`;
 
 /** Markdown textarea with a preview tab whose task-list checkboxes can be ticked. */
 export default function MarkdownField({
@@ -51,15 +17,25 @@ export default function MarkdownField({
     const [mode, setMode] = useState<"write" | "preview">(value.trim() ? "preview" : "write");
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <Tabs role="tablist">
-                <Tab type="button" role="tab" $active={mode === "write"} onClick={() => setMode("write")}>
+        <div className={"markdownField"}>
+            <div className={"markdownTabs"} role="tablist">
+                <button
+                    className={["markdownTab", mode === "write" && "markdownTabActive"].filter(Boolean).join(" ")}
+                    type="button"
+                    role="tab"
+                    onClick={() => setMode("write")}
+                >
                     Write
-                </Tab>
-                <Tab type="button" role="tab" $active={mode === "preview"} onClick={() => setMode("preview")}>
+                </button>
+                <button
+                    className={["markdownTab", mode === "preview" && "markdownTabActive"].filter(Boolean).join(" ")}
+                    type="button"
+                    role="tab"
+                    onClick={() => setMode("preview")}
+                >
                     Preview
-                </Tab>
-            </Tabs>
+                </button>
+            </div>
             {mode === "write" ? (
                 <>
                     <Textarea
@@ -68,18 +44,20 @@ export default function MarkdownField({
                         onChange={(e) => onChange(e.target.value)}
                         rows={8}
                         maxLength={5000}
-                        placeholder={"Describe the task…\n- [ ] checklist item\n**bold**, `code`, [links](https://…)"}
+                        placeholder={
+                            "Describe the taskâ€¦\n- [ ] checklist item\n**bold**, `code`, [links](https://â€¦)"
+                        }
                     />
-                    <Hint>Markdown supported, including task lists (- [ ] item).</Hint>
+                    <p className={"markdownHint"}>Markdown supported, including task lists (- [ ] item).</p>
                 </>
             ) : (
-                <Preview>
+                <div className={"markdownPreview"}>
                     {value.trim() ? (
                         <MarkdownView source={value} onChange={onChange} />
                     ) : (
-                        <Empty>Nothing to preview.</Empty>
+                        <p className={"markdownEmpty"}>Nothing to preview.</p>
                     )}
-                </Preview>
+                </div>
             )}
         </div>
     );

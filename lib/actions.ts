@@ -99,6 +99,23 @@ export async function createTaskAction(projectId: number, title: string, status:
     return task;
 }
 
+export async function reorderTasksAction(projectId: number, status: Status, taskIds: number[]): Promise<boolean> {
+    const id = Number(projectId);
+    if (
+        !Number.isInteger(id) ||
+        !isStatus(status) ||
+        !Array.isArray(taskIds) ||
+        taskIds.some((taskId) => !Number.isInteger(taskId)) ||
+        new Set(taskIds).size !== taskIds.length ||
+        !(await db.getProject(id))
+    ) {
+        return false;
+    }
+    const reordered = await db.reorderTasks(id, status, taskIds);
+    if (reordered) refresh();
+    return reordered;
+}
+
 export async function updateTaskAction(
     taskId: number,
     fields: { title?: string; description?: string; status?: Status; labelIds?: number[] },

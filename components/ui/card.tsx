@@ -1,64 +1,32 @@
 "use client";
 
-import styled from "styled-components";
+type CardProps = React.ComponentProps<"div"> & { $size?: "sm"; $dim?: boolean; $hoverable?: boolean };
 
-export const Card = styled.div<{ $size?: "sm"; $dim?: boolean; $hoverable?: boolean }>`
-    --card-spacing: ${(p) => (p.$size === "sm" ? "12px" : "16px")};
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: var(--card-spacing);
-    padding-block: var(--card-spacing);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--card);
-    opacity: ${(p) => (p.$dim ? 0.7 : 1)};
+export function Card({ $size, $dim, $hoverable, className, ...props }: CardProps) {
+    return (
+        <div
+            className={[
+                "card",
+                $size === "sm" && "cardSmall",
+                $dim && "cardDim",
+                $hoverable && "cardHoverable",
+                className,
+            ]
+                .filter(Boolean)
+                .join(" ")}
+            {...props}
+        />
+    );
+}
 
-    ${(p) =>
-        p.$hoverable &&
-        `
-    &:hover {
-      border-color: var(--ring);
-    }
-  `}
-`;
+function CardPart({ baseClass, className, ...props }: React.ComponentProps<"div"> & { baseClass: string }) {
+    return <div className={[baseClass, className].filter(Boolean).join(" ")} {...props} />;
+}
 
-export const CardHeader = styled.div`
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: start;
-    gap: 4px 8px;
-    padding-inline: var(--card-spacing);
-`;
-
-export const CardTitle = styled.div`
-    grid-column: 1;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.3;
-`;
-
-export const CardDescription = styled.div`
-    grid-column: 1;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    color: var(--muted-foreground);
-`;
-
-export const CardAction = styled.div`
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    justify-self: end;
-`;
-
-export const CardContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding-inline: var(--card-spacing);
-`;
+export const CardHeader = (props: React.ComponentProps<"div">) => <CardPart baseClass={"cardHeader"} {...props} />;
+export const CardTitle = (props: React.ComponentProps<"div">) => <CardPart baseClass={"cardTitle"} {...props} />;
+export const CardDescription = (props: React.ComponentProps<"div">) => (
+    <CardPart baseClass={"cardDescription"} {...props} />
+);
+export const CardAction = (props: React.ComponentProps<"div">) => <CardPart baseClass={"cardAction"} {...props} />;
+export const CardContent = (props: React.ComponentProps<"div">) => <CardPart baseClass={"cardContent"} {...props} />;

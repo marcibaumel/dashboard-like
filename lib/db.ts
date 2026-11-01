@@ -1,4 +1,7 @@
 import "server-only";
+import Database from "better-sqlite3";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { DataSource, EntitySchema, In } from "typeorm";
 import type { Label, LabelColor, Project, ProjectWithCounts, Status, Task } from "./types";
@@ -34,6 +37,7 @@ interface TaskRow {
     title: string;
     description: string;
     status: Status;
+    sortOrder: number;
     createdAt: Date;
     updatedAt: Date;
     labels?: LabelRow[];
@@ -100,6 +104,7 @@ const TaskEntity = new EntitySchema<TaskRow>({
         title: { type: String },
         description: { type: String, default: "" },
         status: { type: "varchar", length: 20, default: "TODO" },
+        sortOrder: { type: Number, default: 0 },
         createdAt: { type: "datetime", createDate: true },
         updatedAt: { type: "datetime", updateDate: true },
     },
@@ -120,18 +125,122 @@ const TaskEntity = new EntitySchema<TaskRow>({
 });
 
 const g = globalThis as unknown as { kanbanDs?: Promise<DataSource> };
+const DATABASE_FILE = path.join(process.cwd(), "kanban.db");
+const IMPORT_TABLES = {
+    tags: ["id", "name"],
+    projects: ["id", "title", "description", "done", "createdAt", "labelsSeeded"],
+    labels: ["id", "projectId", "name", "color"],
+    tasks: ["id", "projectId", "title", "description", "status", "createdAt", "updatedAt", "sortOrder"],
+    project_tags: ["projectsId", "tagsId"],
+    task_labels: ["tasksId", "labelsId"],
+} as const;
+
+export class InvalidDatabaseImportError extends Error {
+    constructor() {
+        super("The uploaded file is not a compatible Kanban SQLite database.");
+        this.name = "InvalidDatabaseImportError";
+    }
+}
 
 function getDataSource(): Promise<DataSource> {
     // Cached on globalThis so dev hot reloads reuse one connection.
     return (g.kanbanDs ??= new DataSource({
         type: "better-sqlite3",
-        database: path.join(process.cwd(), "kanban.db"),
+        database: DATABASE_FILE,
         entities: [TagEntity, LabelEntity, ProjectEntity, TaskEntity],
         synchronize: true,
         prepareDatabase: (db) => {
             db.pragma("journal_mode = WAL");
         },
     }).initialize());
+}
+
+function nativeConnection(dataSource: DataSource): Database.Database {
+    return (dataSource.driver as unknown as { databaseConnection: Database.Database }).databaseConnection;
+}
+
+function validateDatabaseFile(filePath: string): void {
+    let imported: Database.Database | undefined;
+    try {
+        imported = new Database(filePath, { readonly: true, fileMustExist: true });
+        if (imported.pragma("quick_check", { simple: true }) !== "ok") {
+            throw new InvalidDatabaseImportError();
+        }
+
+        const tables = new Set(
+            (imported.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as { name: string }[]).map(
+                (table) => table.name,
+            ),
+        );
+        for (const [table, requiredColumns] of Object.entries(IMPORT_TABLES)) {
+            if (!tables.has(table)) throw new InvalidDatabaseImportError();
+            const columns = new Set(
+                (imported.pragma(`table_info("${table}")`) as { name: string }[]).map((column) => column.name),
+            );
+            if (!requiredColumns.every((column) => columns.has(column))) {
+                throw new InvalidDatabaseImportError();
+            }
+        }
+
+        if ((imported.pragma("foreign_key_check") as unknown[]).length > 0) {
+            throw new InvalidDatabaseImportError();
+        }
+    } catch (error) {
+        if (error instanceof InvalidDatabaseImportError) throw error;
+        throw new InvalidDatabaseImportError();
+    } finally {
+        imported?.close();
+    }
+}
+
+export async function exportDatabase(): Promise<Buffer> {
+    const temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), "kanban-export-"));
+    const backupFile = path.join(temporaryDirectory, "kanban.sqlite");
+    try {
+        await nativeConnection(await getDataSource()).backup(backupFile);
+        return await readFile(backupFile);
+    } finally {
+        await rm(temporaryDirectory, { recursive: true, force: true });
+    }
+}
+
+export async function importDatabase(data: Uint8Array): Promise<void> {
+    const file = Buffer.from(data);
+    const signature = Buffer.from("SQLite format 3\u0000");
+    if (file.length < signature.length || !file.subarray(0, signature.length).equals(signature)) {
+        throw new InvalidDatabaseImportError();
+    }
+
+    const temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), "kanban-import-"));
+    const importFile = path.join(temporaryDirectory, "kanban.sqlite");
+    try {
+        await writeFile(importFile, file, { flag: "wx" });
+        validateDatabaseFile(importFile);
+
+        const connection = nativeConnection(await getDataSource());
+        connection.prepare("ATTACH DATABASE ? AS incoming").run(importFile);
+        try {
+            const transaction = connection.transaction(() => {
+                connection.pragma("defer_foreign_keys = ON");
+                connection.exec(
+                    "DELETE FROM task_labels; DELETE FROM project_tags; DELETE FROM tasks; DELETE FROM labels; DELETE FROM projects; DELETE FROM tags;",
+                );
+                const copies = Object.entries(IMPORT_TABLES).map(([table, columns]) => {
+                    const columnList = columns.join(", ");
+                    return `INSERT INTO main."${table}" (${columnList}) SELECT ${columnList} FROM incoming."${table}";`;
+                });
+                connection.exec(copies.join("\n"));
+                if ((connection.pragma("foreign_key_check") as unknown[]).length > 0) {
+                    throw new Error("Imported database violates foreign key constraints.");
+                }
+            });
+            transaction.immediate();
+        } finally {
+            connection.exec("DETACH DATABASE incoming");
+        }
+    } finally {
+        await rm(temporaryDirectory, { recursive: true, force: true });
+    }
 }
 
 const tagNames = (tags?: TagRow[]) => (tags ?? []).map((t) => t.name).sort();
@@ -154,6 +263,7 @@ const toTask = (t: TaskRow): Task => ({
     title: t.title,
     description: t.description,
     status: t.status,
+    sortOrder: t.sortOrder,
     labelIds: (t.labels ?? []).map((l) => l.id),
     createdAt: new Date(t.createdAt).toISOString(),
     updatedAt: new Date(t.updatedAt).toISOString(),
@@ -299,14 +409,44 @@ export async function listTasks(projectId: number): Promise<Task[]> {
     ).find({
         where: { projectId },
         relations: { labels: true },
-        order: { createdAt: "ASC", id: "ASC" },
+        order: { status: "ASC", sortOrder: "ASC", createdAt: "ASC", id: "ASC" },
     });
     return rows.map(toTask);
 }
 
 export async function createTask(projectId: number, title: string, description: string, status: Status): Promise<Task> {
     const repo = await tasks();
-    return toTask(await repo.save(repo.create({ projectId, title, description, status })));
+    const lastTask = await repo.findOne({ where: { projectId, status }, order: { sortOrder: "DESC" } });
+    return toTask(
+        await repo.save(
+            repo.create({
+                projectId,
+                title,
+                description,
+                status,
+                sortOrder: (lastTask?.sortOrder ?? -1) + 1,
+            }),
+        ),
+    );
+}
+
+export async function reorderTasks(projectId: number, status: Status, taskIds: number[]): Promise<boolean> {
+    const repo = await tasks();
+    const projectTasks = await repo.find({ where: { projectId } });
+    const existingIds = new Set(projectTasks.map((task) => task.id));
+    const currentColumnIds = projectTasks.filter((task) => task.status === status).map((task) => task.id);
+
+    if (taskIds.some((id) => !existingIds.has(id)) || currentColumnIds.some((id) => !taskIds.includes(id))) {
+        return false;
+    }
+
+    await repo.manager.transaction(async (manager) => {
+        const transactionRepo = manager.getRepository(TaskEntity);
+        for (const [sortOrder, id] of taskIds.entries()) {
+            await transactionRepo.update({ id, projectId }, { status, sortOrder });
+        }
+    });
+    return true;
 }
 
 export async function updateTask(
@@ -317,6 +457,13 @@ export async function updateTask(
     const task = await repo.findOne({ where: { id }, relations: { labels: true } });
     if (!task) return undefined;
     const { labelIds, ...columns } = fields;
+    if (fields.status !== undefined && fields.status !== task.status) {
+        const lastTask = await repo.findOne({
+            where: { projectId: task.projectId, status: fields.status },
+            order: { sortOrder: "DESC" },
+        });
+        task.sortOrder = (lastTask?.sortOrder ?? -1) + 1;
+    }
     Object.assign(task, columns);
     if (labelIds !== undefined) {
         // Restricting to the task's own project keeps labels from leaking across projects.

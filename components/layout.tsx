@@ -1,44 +1,28 @@
-"use client";
-
 import Link from "next/link";
-import styled from "styled-components";
+import type { ComponentProps } from "react";
 
-export const Main = styled.main<{ $width: number }>`
-    width: 100%;
-    max-width: ${(p) => p.$width}px;
-    margin: 0 auto;
-    padding: 24px;
-`;
+function combineClasses(base: string, extra?: string) {
+    return [base, extra].filter(Boolean).join(" ");
+}
 
-export const PageHeader = styled.div`
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 24px;
-`;
+export function Main({ $width, className, style, ...props }: ComponentProps<"main"> & { $width: number }) {
+    return (
+        <main className={combineClasses("mainWindow", className)} style={{ ...style, maxWidth: $width }} {...props} />
+    );
+}
 
-export const Heading = styled.h1`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 24px;
-    font-weight: 700;
-    line-height: 1.3;
-`;
+export function PageHeader({ className, ...props }: ComponentProps<"div">) {
+    return <div className={combineClasses("pageHeader", className)} {...props} />;
+}
 
-export const Subtitle = styled.p`
-    margin-top: 4px;
-    color: var(--muted-foreground);
-`;
+export function Heading({ className, ...props }: ComponentProps<"h1">) {
+    return <h1 className={combineClasses("heading", className)} {...props} />;
+}
 
-export const BackLink = styled(Link)`
-    display: inline-block;
-    margin-bottom: 8px;
-    color: var(--link);
-    font-size: 14px;
+export function Subtitle({ className, ...props }: ComponentProps<"p">) {
+    return <p className={combineClasses("subtitle", className)} {...props} />;
+}
 
-    &:hover {
-        text-decoration: underline;
-    }
-`;
+export function BackLink({ className, ...props }: ComponentProps<typeof Link>) {
+    return <Link className={combineClasses("backLink", className)} {...props} />;
+}

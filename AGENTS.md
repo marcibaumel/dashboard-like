@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Project: Kanban board
 
-Trello-like board. Next.js (App Router) + TypeScript, styled-components, shadcn-style UI on Base UI, TypeORM over SQLite (`better-sqlite3`), Markdown task descriptions (`react-markdown` + `remark-gfm`).
+Trello-like board. Next.js (App Router) + TypeScript, plain CSS, shadcn-style UI on Base UI, TypeORM over SQLite (`better-sqlite3`), Markdown task descriptions (`react-markdown` + `remark-gfm`).
 
 ### Commands
 
@@ -21,8 +21,7 @@ Trello-like board. Next.js (App Router) + TypeScript, styled-components, shadcn-
 ### Conventions
 
 - Formatting: Prettier, 4-space indentation (no tabs), print width 100 (see `.prettierrc`).
-- Styling: styled-components only, no Tailwind. Theme colors are CSS variables in `app/globals.css`. Use transient props (`$prop`) for style-only props.
-- styled-components need a client boundary: put `"use client"` on any file that defines them. Server components (pages) import styled pieces from `components/layout.tsx`.
+- Styling: plain CSS files, no Tailwind. Theme colors are CSS variables in `app/index.css`. Shared component styles live in `components/index.css` and `components/ui/index.css`, imported from the root layout.
 - Data: `lib/db.ts` is the only place that touches the database (`server-only`). Entities use TypeORM `EntitySchema` (no decorators); the schema is created via `synchronize: true`, so there are no migrations.
 - Mutations are Server Actions in `lib/actions.ts`; they validate input and call `revalidatePath`.
 - Shared types and constants (statuses, label colors, tag normalization) live in `lib/types.ts`; Markdown helpers in `lib/markdown.ts`.

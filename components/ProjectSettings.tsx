@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { SettingsIcon } from "lucide-react";
-import styled from "styled-components";
 import LabelEditor from "@/components/LabelEditor";
 import TagInput from "@/components/TagInput";
 import { Button } from "@/components/ui/button";
@@ -17,19 +16,6 @@ import {
 import { Field, Input, Label } from "@/components/ui/input";
 import { deleteProjectAction, renameProjectAction, setProjectDoneAction, setProjectTagsAction } from "@/lib/actions";
 import type { Label as ProjectLabel } from "@/lib/types";
-
-const Footer = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 8px;
-`;
-
-// Sits above a card's stretched link so the button stays clickable.
-const Trigger = styled.span`
-    position: relative;
-    z-index: 1;
-`;
 
 interface Props {
     project: { id: number; title: string; done: boolean; tags: string[]; labels: ProjectLabel[] };
@@ -69,11 +55,11 @@ export default function ProjectSettings({ project, allTags }: Props) {
 
     return (
         <Dialog>
-            <Trigger>
+            <span className={"settingsTrigger"}>
                 <DialogTrigger render={<Button variant="ghost" size="icon" aria-label="Project settings" />}>
                     <SettingsIcon />
                 </DialogTrigger>
-            </Trigger>
+            </span>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Project settings</DialogTitle>
@@ -107,14 +93,14 @@ export default function ProjectSettings({ project, allTags }: Props) {
                     <LabelEditor projectId={project.id} labels={project.labels} />
                 </Field>
 
-                <Footer>
+                <div className={"settingsFooter"}>
                     <Button variant="destructive" onClick={remove} disabled={pending}>
                         Delete project
                     </Button>
                     <Button variant={done ? "outline" : "default"} onClick={toggleDone} disabled={pending}>
                         {done ? "Reopen project" : "Mark as done"}
                     </Button>
-                </Footer>
+                </div>
             </DialogContent>
         </Dialog>
     );

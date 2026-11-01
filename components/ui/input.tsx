@@ -1,49 +1,17 @@
 "use client";
 
-import styled, { css } from "styled-components";
+export function Input({ className, ...props }: React.ComponentProps<"input">) {
+    return <input className={["fieldControl", "input", className].filter(Boolean).join(" ")} {...props} />;
+}
 
-export const fieldStyles = css`
-    width: 100%;
-    min-width: 0;
-    padding: 6px 10px;
-    border: 1px solid var(--input);
-    border-radius: 8px;
-    background: transparent;
-    font-size: 14px;
-    outline: none;
+export function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
+    return <textarea className={["fieldControl", "textarea", className].filter(Boolean).join(" ")} {...props} />;
+}
 
-    &::placeholder {
-        color: var(--muted-foreground);
-    }
-    &:focus-visible {
-        border-color: var(--ring);
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 50%, transparent);
-    }
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-`;
+export function Label({ className, ...props }: React.ComponentProps<"label">) {
+    return <label className={["fieldLabel", className].filter(Boolean).join(" ")} {...props} />;
+}
 
-export const Input = styled.input`
-    ${fieldStyles}
-    height: 32px;
-`;
-
-export const Textarea = styled.textarea`
-    ${fieldStyles}
-    min-height: 64px;
-    resize: vertical;
-`;
-
-export const Label = styled.label`
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1;
-`;
-
-export const Field = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-`;
+export function Field({ className, ...props }: React.ComponentProps<"div">) {
+    return <div className={["field", className].filter(Boolean).join(" ")} {...props} />;
+}

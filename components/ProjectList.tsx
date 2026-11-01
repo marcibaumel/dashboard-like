@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { SearchIcon } from "lucide-react";
-import styled from "styled-components";
 import ProjectSettings from "@/components/ProjectSettings";
 import StatusBar from "@/components/StatusBar";
 import { Badge } from "@/components/ui/badge";
@@ -13,99 +12,6 @@ import { Input } from "@/components/ui/input";
 import type { ProjectWithCounts } from "@/lib/types";
 
 type StateFilter = "all" | "active" | "done";
-
-const Wrapper = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-`;
-
-const Controls = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-`;
-
-const SearchBox = styled.div`
-    position: relative;
-    flex: 1;
-    min-width: 224px;
-
-    svg {
-        position: absolute;
-        top: 50%;
-        left: 10px;
-        width: 16px;
-        height: 16px;
-        transform: translateY(-50%);
-        color: var(--muted-foreground);
-        pointer-events: none;
-    }
-    input {
-        padding-left: 32px;
-    }
-`;
-
-const StateButtons = styled.div`
-    display: flex;
-    gap: 4px;
-    text-transform: capitalize;
-`;
-
-const TagFilter = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-`;
-
-const PlainButton = styled.button`
-    padding: 0;
-    border: 0;
-    background: none;
-`;
-
-const Grid = styled.ul`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 16px;
-
-    @media (min-width: 640px) {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    @media (min-width: 1024px) {
-        grid-template-columns: repeat(3, 1fr);
-    }
-`;
-
-const Item = styled.li`
-    display: flex;
-
-    > * {
-        flex: 1;
-    }
-`;
-
-// Stretches over the whole card so the card is clickable.
-const TitleLink = styled(Link)`
-    &::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-    }
-`;
-
-const Tags = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-`;
-
-const EmptyText = styled.p`
-    margin-top: 16px;
-    color: var(--muted-foreground);
-`;
 
 export default function ProjectList({ projects, allTags }: { projects: ProjectWithCounts[]; allTags: string[] }) {
     const [search, setSearch] = useState("");
@@ -135,18 +41,18 @@ export default function ProjectList({ projects, allTags }: { projects: ProjectWi
         setSelectedTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
 
     return (
-        <Wrapper>
-            <Controls>
-                <SearchBox>
+        <div className={"projectListWrapper"}>
+            <div className={"projectControls"}>
+                <div className={"projectSearch"}>
                     <SearchIcon />
                     <Input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search projects…"
+                        placeholder="Search projectsâ€¦"
                         aria-label="Search projects"
                     />
-                </SearchBox>
-                <StateButtons>
+                </div>
+                <div className={"projectStateButtons"}>
                     {(["all", "active", "done"] as const).map((s) => (
                         <Button
                             key={s}
@@ -157,43 +63,46 @@ export default function ProjectList({ projects, allTags }: { projects: ProjectWi
                             {s}
                         </Button>
                     ))}
-                </StateButtons>
-            </Controls>
+                </div>
+            </div>
 
             {usedTags.length > 0 && (
-                <TagFilter>
+                <div className={"projectTagFilter"}>
                     {usedTags.map((t) => (
-                        <PlainButton
+                        <button
+                            className={"projectPlainButton"}
                             key={t}
                             type="button"
                             onClick={() => toggleTag(t)}
                             aria-pressed={selectedTags.includes(t)}
                         >
                             <Badge variant={selectedTags.includes(t) ? "default" : "outline"}>#{t}</Badge>
-                        </PlainButton>
+                        </button>
                     ))}
                     {selectedTags.length > 0 && (
                         <Button size="sm" variant="ghost" onClick={() => setSelectedTags([])}>
                             Clear
                         </Button>
                     )}
-                </TagFilter>
+                </div>
             )}
 
             {visible.length === 0 ? (
-                <EmptyText>
+                <p className={"projectEmptyText"}>
                     {projects.length === 0
                         ? "No projects yet. Create your first one above."
                         : "No projects match your filters."}
-                </EmptyText>
+                </p>
             ) : (
-                <Grid>
+                <ul className={"projectGrid"}>
                     {visible.map((p) => (
-                        <Item key={p.id}>
+                        <li className={"projectItem"} key={p.id}>
                             <Card $dim={p.done} $hoverable>
                                 <CardHeader>
                                     <CardTitle>
-                                        <TitleLink href={`/projects/${p.id}`}>{p.title}</TitleLink>
+                                        <Link className={"projectTitleLink"} href={`/projects/${p.id}`}>
+                                            {p.title}
+                                        </Link>
                                         {p.done && <Badge variant="secondary">Done</Badge>}
                                     </CardTitle>
                                     <CardDescription>{p.description}</CardDescription>
@@ -203,21 +112,21 @@ export default function ProjectList({ projects, allTags }: { projects: ProjectWi
                                 </CardHeader>
                                 <CardContent style={{ marginTop: "auto" }}>
                                     {p.tags.length > 0 && (
-                                        <Tags>
+                                        <div className={"projectTags"}>
                                             {p.tags.map((t) => (
                                                 <Badge key={t} variant="outline">
                                                     #{t}
                                                 </Badge>
                                             ))}
-                                        </Tags>
+                                        </div>
                                     )}
                                     <StatusBar counts={p.counts} />
                                 </CardContent>
                             </Card>
-                        </Item>
+                        </li>
                     ))}
-                </Grid>
+                </ul>
             )}
-        </Wrapper>
+        </div>
     );
 }

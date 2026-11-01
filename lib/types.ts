@@ -89,6 +89,7 @@ export interface Task {
     title: string;
     description: string;
     status: Status;
+    sortOrder: number;
     labelIds: number[];
     createdAt: string;
     updatedAt: string;

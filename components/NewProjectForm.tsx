@@ -1,18 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import styled from "styled-components";
 import TagInput from "@/components/TagInput";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Field, Input, Label, Textarea } from "@/components/ui/input";
 import { createProjectAction } from "@/lib/actions";
-
-const Form = styled.form`
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-`;
 
 export default function NewProjectForm({ allTags }: { allTags: string[] }) {
     const [open, setOpen] = useState(false);
@@ -22,7 +15,7 @@ export default function NewProjectForm({ allTags }: { allTags: string[] }) {
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger render={<Button />}>+ New project</DialogTrigger>
             <DialogContent>
-                <Form action={createProjectAction}>
+                <form className={"newProjectForm"} action={createProjectAction}>
                     <DialogHeader>
                         <DialogTitle>New project</DialogTitle>
                     </DialogHeader>
@@ -41,7 +34,7 @@ export default function NewProjectForm({ allTags }: { allTags: string[] }) {
                     <DialogFooter>
                         <Button type="submit">Create</Button>
                     </DialogFooter>
-                </Form>
+                </form>
             </DialogContent>
         </Dialog>
     );

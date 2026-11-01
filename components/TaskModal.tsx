@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import styled from "styled-components";
 import MarkdownField from "@/components/MarkdownField";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,48 +9,6 @@ import { Field, Input, Label } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { deleteTaskAction, updateTaskAction } from "@/lib/actions";
 import { LABEL_COLORS, STATUSES, STATUS_LABELS, type Label as TaskLabel, type Status, type Task } from "@/lib/types";
-
-const WideContent = styled(DialogContent)`
-    && {
-        max-width: 600px;
-    }
-`;
-
-const Form = styled.form`
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-`;
-
-const Muted = styled.span`
-    color: var(--muted-foreground);
-`;
-
-const Chips = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-`;
-
-const Chip = styled.button<{ $on: boolean }>`
-    padding: 0;
-    border: 0;
-    background: none;
-    opacity: ${(p) => (p.$on ? 1 : 0.5)};
-
-    &:hover {
-        opacity: 1;
-    }
-`;
-
-const Footer = styled(DialogFooter)`
-    justify-content: space-between;
-`;
-
-const Actions = styled.div`
-    display: flex;
-    gap: 8px;
-`;
 
 interface Props {
     task: Task;
@@ -90,11 +47,11 @@ export default function TaskModal({ task, labels, onSaved, onDeleted, onClose }:
 
     return (
         <Dialog open onOpenChange={(open) => !open && onClose()}>
-            <WideContent>
-                <Form onSubmit={save}>
+            <DialogContent wide>
+                <form className={"taskForm"} onSubmit={save}>
                     <DialogHeader>
                         <DialogTitle>
-                            <Muted>#{task.id}</Muted> Task details
+                            <span className={"taskMuted"}>#{task.id}</span> Task details
                         </DialogTitle>
                     </DialogHeader>
                     <Field>
@@ -128,14 +85,14 @@ export default function TaskModal({ task, labels, onSaved, onDeleted, onClose }:
                     </Field>
                     <Field>
                         <Label>Labels</Label>
-                        <Chips>
+                        <div className={"taskLabelChips"}>
                             {labels.map((l) => {
                                 const on = labelIds.includes(l.id);
                                 return (
-                                    <Chip
+                                    <button
+                                        className={["taskLabelChip", on && "taskLabelChipOn"].filter(Boolean).join(" ")}
                                         key={l.id}
                                         type="button"
-                                        $on={on}
                                         aria-pressed={on}
                                         onClick={() =>
                                             setLabelIds((cur) =>
@@ -146,27 +103,29 @@ export default function TaskModal({ task, labels, onSaved, onDeleted, onClose }:
                                         <Badge variant="outline" color={on ? LABEL_COLORS[l.color] : undefined}>
                                             {l.name}
                                         </Badge>
-                                    </Chip>
+                                    </button>
                                 );
                             })}
-                            {labels.length === 0 && <Muted>No labels yet. Add some in the project settings.</Muted>}
-                        </Chips>
+                            {labels.length === 0 && (
+                                <span className={"taskMuted"}>No labels yet. Add some in the project settings.</span>
+                            )}
+                        </div>
                     </Field>
-                    <Footer>
+                    <DialogFooter className={"taskFooter"}>
                         <Button type="button" variant="destructive" onClick={remove} disabled={busy}>
                             Delete
                         </Button>
-                        <Actions>
+                        <div className={"taskActions"}>
                             <Button type="button" variant="outline" onClick={onClose}>
                                 Cancel
                             </Button>
                             <Button type="submit" disabled={busy}>
                                 Save
                             </Button>
-                        </Actions>
-                    </Footer>
-                </Form>
-            </WideContent>
+                        </div>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
         </Dialog>
     );
 }
