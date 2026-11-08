@@ -5,9 +5,13 @@ function combineClasses(base: string, extra?: string) {
     return [base, extra].filter(Boolean).join(" ");
 }
 
-export function Main({ $width, className, style, ...props }: ComponentProps<"main"> & { $width: number }) {
+export function Main({ $width, className, style, ...props }: ComponentProps<"main"> & { $width?: number }) {
     return (
-        <main className={combineClasses("mainWindow", className)} style={{ ...style, maxWidth: $width }} {...props} />
+        <main
+            className={combineClasses("mainWindow", className)}
+            style={{ ...style, ...(typeof $width === "number" ? { maxWidth: $width } : {}) }}
+            {...props}
+        />
     );
 }
 

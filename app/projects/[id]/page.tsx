@@ -16,7 +16,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     const [tasks, allTags] = await Promise.all([listTasks(project.id), listTags()]);
 
     return (
-        <Main $width={1280}>
+        <Main className="boardWindow">
             <BackLink href="/">&larr; All projects</BackLink>
             <PageHeader>
                 <div>

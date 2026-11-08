@@ -1,5 +1,15 @@
 # dashboard-like
 
+## Rebuild and restart
+
+On Linux with the `dashboard-like.service` user systemd service installed, run:
+
+```sh
+npm run rebuild:restart
+```
+
+The service is restarted only if the production build succeeds.
+
 ## SQLite backups
 
 The API at `/api/database` exports the current SQLite database with `GET` and imports a database file with `POST`. Set `DATABASE_API_TOKEN` on the server before using either method; requests must include it as a bearer token. Imports replace the app's projects, tasks, tags, and labels inside a transaction. Uploads are limited to 128 MiB and must pass SQLite integrity, schema, and foreign-key checks.

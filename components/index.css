@@ -190,6 +190,10 @@
     }
 }
 
+.boardWindow {
+    width: calc(100% - 20px);
+}
+
 .pageHeader {
     display: flex;
     align-items: flex-start;
