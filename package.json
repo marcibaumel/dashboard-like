@@ -8,6 +8,8 @@
         "rebuild:restart": "npm run build && systemctl --user restart dashboard-like.service",
         "restart": "npm run rebuild:restart",
         "start": "next start",
+        "test": "playwright test",
+        "test:ui": "playwright test --ui",
         "lint": "eslint",
         "format": "prettier --write .",
         "format:check": "prettier --check ."
@@ -25,6 +27,7 @@
         "typeorm": "^1.1.2"
     },
     "devDependencies": {
+        "@playwright/test": "^1.56.1",
         "@types/better-sqlite3": "^9.6.0",
         "@types/node": "^20",
         "@types/react": "^19",

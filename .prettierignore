@@ -1,4 +1,7 @@
 node_modules
 .next
+.next-playwright
+playwright-report
+test-results
 package-lock.json
 *.db

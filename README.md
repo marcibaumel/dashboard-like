@@ -28,6 +28,29 @@ This builds the current code and restarts the service only if the build succeeds
 
 If you're running `npm run dev` in a terminal instead, stop it with Ctrl+C and run `npm run dev` again.
 
+## Tests
+
+Install dependencies and the Playwright Chromium browser, then run the test suite:
+
+```sh
+npm ci
+npx playwright install chromium
+npm test
+```
+
+For Linux CI, use `npx playwright install --with-deps chromium` to install browser system
+dependencies. `npm run test:ui` opens Playwright's interactive runner. Tests launch their own
+Next.js development server on port 3199 and use a temporary SQLite database, not `kanban.db`.
+Set `PLAYWRIGHT_PORT` to use another port if needed. The tests run serially because the backup
+API replaces the database; each test starts from an empty database. Failure traces are saved in
+`test-results`, and CI also produces an HTML report in `playwright-report`.
+
+GitHub Actions runs lint for pushes and pull requests, and runs the Playwright suite on every push
+to `main`. If tests fail, the workflow uploads the report and traces as an artifact.
+
+The server accepts `KANBAN_DATABASE_FILE` as an optional SQLite file path; without it, the
+database remains `kanban.db` in the project directory.
+
 ## SQLite backups
 
 The API at `/api/database` exports the current SQLite database with `GET` and imports a database file with `POST`. Set `DATABASE_API_TOKEN` on the server before using either method; requests must include it as a bearer token. Imports replace the app's projects, tasks, tags, and labels inside a transaction. Uploads are limited to 128 MiB and must pass SQLite integrity, schema, and foreign-key checks.

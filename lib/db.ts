@@ -132,7 +132,7 @@ const TaskEntity = new EntitySchema<TaskRow>({
 });
 
 const g = globalThis as unknown as { kanbanDs?: Promise<DataSource> };
-const DATABASE_FILE = path.join(process.cwd(), "kanban.db");
+const DATABASE_FILE = process.env.KANBAN_DATABASE_FILE || path.join(process.cwd(), "kanban.db");
 const IMPORT_TABLES = {
     tags: ["id", "name"],
     projects: ["id", "title", "description", "done", "createdAt", "labelsSeeded", "key", "nextTaskNumber"],
