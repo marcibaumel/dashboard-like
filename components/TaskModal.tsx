@@ -21,13 +21,14 @@ import {
 
 interface Props {
     task: Task;
+    projectKey: string;
     labels: TaskLabel[];
     onSaved: (task: Task) => void;
     onDeleted: (id: number) => void;
     onClose: () => void;
 }
 
-export default function TaskModal({ task, labels, onSaved, onDeleted, onClose }: Props) {
+export default function TaskModal({ task, projectKey, labels, onSaved, onDeleted, onClose }: Props) {
     const [title, setTitle] = useState(task.title);
     const [description, setDescription] = useState(task.description);
     const [checklistDraft, setChecklistDraft] = useState("");
@@ -62,7 +63,10 @@ export default function TaskModal({ task, labels, onSaved, onDeleted, onClose }:
                 <form className={"taskForm"} onSubmit={save}>
                     <DialogHeader>
                         <DialogTitle>
-                            <span className={"taskMuted"}>#{task.id}</span> Task details
+                            <span className={"taskMuted"}>
+                                {projectKey}-{task.number}
+                            </span>{" "}
+                            Task details
                         </DialogTitle>
                     </DialogHeader>
                     <Field>

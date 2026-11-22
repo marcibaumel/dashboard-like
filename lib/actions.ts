@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import * as db from "./db";
 import {
     isLabelColor,
+    isProjectKey,
     isStatus,
     normalizeTags,
     MAX_LABEL_LENGTH,
@@ -23,14 +24,23 @@ function refresh() {
     revalidatePath("/", "layout");
 }
 
-export async function createProjectAction(formData: FormData): Promise<void> {
+export async function createProjectAction(
+    _previousState: { error: string },
+    formData: FormData,
+): Promise<{ error: string }> {
     const title = clean(formData.get("title"), 120);
-    if (!title) return;
+    const rawKey = formData.get("key");
+    const key = typeof rawKey === "string" ? rawKey.trim().toUpperCase() : "";
+    if (!title) return { error: "Enter a project title." };
+    if (!isProjectKey(key))
+        return { error: "The project key must start with a letter and contain up to 10 letters or numbers." };
     const project = await db.createProject(
         title,
+        key,
         clean(formData.get("description"), 1000),
         normalizeTags(formData.getAll("tags")),
     );
+    if (!project) return { error: "That project key is already in use." };
     refresh();
     redirect(`/projects/${project.id}`);
 }

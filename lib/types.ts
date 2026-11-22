@@ -21,6 +21,11 @@ export function isStatus(value: unknown): value is Status {
 
 export const MAX_TAG_LENGTH = 30;
 export const MAX_TASK_DESCRIPTION_LENGTH = 5000;
+export const MAX_PROJECT_KEY_LENGTH = 10;
+
+export function isProjectKey(value: string): boolean {
+    return /^[A-Z][A-Z0-9]{0,9}$/.test(value);
+}
 
 /** Canonical tag form so "Bug", "#bug " and "bug" are the same tag. */
 export function normalizeTag(raw: string): string {
@@ -68,6 +73,7 @@ export interface Label {
 
 export interface Project {
     id: number;
+    key: string;
     title: string;
     description: string;
     done: boolean;
@@ -83,6 +89,7 @@ export interface ProjectWithCounts extends Project {
 export interface Task {
     id: number;
     projectId: number;
+    number: number;
     title: string;
     description: string;
     status: Status;

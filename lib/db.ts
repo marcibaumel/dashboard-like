@@ -3,9 +3,9 @@ import Database from "better-sqlite3";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { DataSource, EntitySchema, In } from "typeorm";
+import { DataSource, EntitySchema, In, QueryFailedError } from "typeorm";
 import type { Label, LabelColor, Project, ProjectWithCounts, Status, Task } from "./types";
-import { DEFAULT_LABELS, STATUSES } from "./types";
+import { DEFAULT_LABELS, isProjectKey, MAX_PROJECT_KEY_LENGTH, STATUSES } from "./types";
 
 interface TagRow {
     id: number;
@@ -22,6 +22,8 @@ interface LabelRow {
 
 interface ProjectRow {
     id: number;
+    key: string;
+    nextTaskNumber: number;
     title: string;
     description: string;
     done: boolean;
@@ -34,6 +36,7 @@ interface ProjectRow {
 
 interface TaskRow {
     id: number;
+    number: number;
     title: string;
     description: string;
     status: Status;
@@ -78,6 +81,8 @@ const ProjectEntity = new EntitySchema<ProjectRow>({
     tableName: "projects",
     columns: {
         id: { type: Number, primary: true, generated: "increment" },
+        key: { type: String, unique: true },
+        nextTaskNumber: { type: Number, default: 1 },
         title: { type: String },
         description: { type: String, default: "" },
         done: { type: Boolean, default: false },
@@ -98,8 +103,10 @@ const ProjectEntity = new EntitySchema<ProjectRow>({
 const TaskEntity = new EntitySchema<TaskRow>({
     name: "Task",
     tableName: "tasks",
+    uniques: [{ columns: ["projectId", "number"] }],
     columns: {
         id: { type: Number, primary: true, generated: "increment" },
+        number: { type: Number },
         projectId: { type: Number },
         title: { type: String },
         description: { type: String, default: "" },
@@ -128,9 +135,9 @@ const g = globalThis as unknown as { kanbanDs?: Promise<DataSource> };
 const DATABASE_FILE = path.join(process.cwd(), "kanban.db");
 const IMPORT_TABLES = {
     tags: ["id", "name"],
-    projects: ["id", "title", "description", "done", "createdAt", "labelsSeeded"],
+    projects: ["id", "title", "description", "done", "createdAt", "labelsSeeded", "key", "nextTaskNumber"],
     labels: ["id", "projectId", "name", "color"],
-    tasks: ["id", "projectId", "title", "description", "status", "createdAt", "updatedAt", "sortOrder"],
+    tasks: ["id", "projectId", "title", "description", "status", "createdAt", "updatedAt", "sortOrder", "number"],
     project_tags: ["projectsId", "tagsId"],
     task_labels: ["tasksId", "labelsId"],
 } as const;
@@ -142,6 +149,61 @@ export class InvalidDatabaseImportError extends Error {
     }
 }
 
+function migrateTaskNumbers(db: Database.Database): void {
+    const tableExists = (name: string) =>
+        Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(name));
+    if (!tableExists("projects") || !tableExists("tasks")) return;
+
+    db.transaction(() => {
+        const projectColumns = new Set(
+            (db.pragma('table_info("projects")') as { name: string }[]).map((column) => column.name),
+        );
+        const taskColumns = new Set(
+            (db.pragma('table_info("tasks")') as { name: string }[]).map((column) => column.name),
+        );
+        const legacy =
+            !projectColumns.has("key") && !projectColumns.has("nextTaskNumber") && !taskColumns.has("number");
+        if (!legacy) {
+            if (!projectColumns.has("key") || !projectColumns.has("nextTaskNumber") || !taskColumns.has("number")) {
+                throw new Error("Database has an incomplete project numbering schema.");
+            }
+            return;
+        }
+
+        db.exec(
+            "ALTER TABLE projects ADD COLUMN \"key\" varchar NOT NULL DEFAULT '';" +
+                'ALTER TABLE projects ADD COLUMN "nextTaskNumber" integer NOT NULL DEFAULT 1;' +
+                'ALTER TABLE tasks ADD COLUMN "number" integer NOT NULL DEFAULT 0;',
+        );
+        const projects = db.prepare("SELECT id, title FROM projects ORDER BY id").all() as {
+            id: number;
+            title: string;
+        }[];
+        const used = new Set<string>();
+        const updateProject = db.prepare('UPDATE projects SET "key" = ?, "nextTaskNumber" = ? WHERE id = ?');
+        const updateTask = db.prepare('UPDATE tasks SET "number" = ? WHERE id = ?');
+        const projectTasks = db.prepare("SELECT id FROM tasks WHERE projectId = ? ORDER BY createdAt, id");
+        for (const project of projects) {
+            const base =
+                project.title
+                    .toUpperCase()
+                    .replace(/[^A-Z0-9]/g, "")
+                    .replace(/^[^A-Z]+/, "")
+                    .slice(0, 3) || "PRJ";
+            let key = base;
+            let suffix = 2;
+            while (used.has(key)) {
+                const suffixText = String(suffix++);
+                key = base.slice(0, MAX_PROJECT_KEY_LENGTH - suffixText.length) + suffixText;
+            }
+            used.add(key);
+            const rows = projectTasks.all(project.id) as { id: number }[];
+            rows.forEach((task, index) => updateTask.run(index + 1, task.id));
+            updateProject.run(key, rows.length + 1, project.id);
+        }
+    }).immediate();
+}
+
 function getDataSource(): Promise<DataSource> {
     // Cached on globalThis so dev hot reloads reuse one connection.
     return (g.kanbanDs ??= new DataSource({
@@ -151,6 +213,7 @@ function getDataSource(): Promise<DataSource> {
         synchronize: true,
         prepareDatabase: (db) => {
             db.pragma("journal_mode = WAL");
+            migrateTaskNumbers(db);
         },
     }).initialize());
 }
@@ -162,7 +225,7 @@ function nativeConnection(dataSource: DataSource): Database.Database {
 function validateDatabaseFile(filePath: string): void {
     let imported: Database.Database | undefined;
     try {
-        imported = new Database(filePath, { readonly: true, fileMustExist: true });
+        imported = new Database(filePath, { fileMustExist: true });
         if (imported.pragma("quick_check", { simple: true }) !== "ok") {
             throw new InvalidDatabaseImportError();
         }
@@ -177,7 +240,8 @@ function validateDatabaseFile(filePath: string): void {
             const columns = new Set(
                 (imported.pragma(`table_info("${table}")`) as { name: string }[]).map((column) => column.name),
             );
-            if (!requiredColumns.every((column) => columns.has(column))) {
+            const addedColumns = table === "projects" ? ["key", "nextTaskNumber"] : table === "tasks" ? ["number"] : [];
+            if (!requiredColumns.every((column) => columns.has(column) || addedColumns.includes(column))) {
                 throw new InvalidDatabaseImportError();
             }
         }
@@ -185,6 +249,30 @@ function validateDatabaseFile(filePath: string): void {
         if ((imported.pragma("foreign_key_check") as unknown[]).length > 0) {
             throw new InvalidDatabaseImportError();
         }
+        migrateTaskNumbers(imported);
+        const invalidProject = imported.prepare('SELECT "key", "nextTaskNumber" FROM projects').all() as {
+            key: unknown;
+            nextTaskNumber: unknown;
+        }[];
+        const keys = new Set<string>();
+        for (const project of invalidProject) {
+            if (
+                typeof project.key !== "string" ||
+                !isProjectKey(project.key) ||
+                keys.has(project.key) ||
+                !Number.isSafeInteger(project.nextTaskNumber) ||
+                Number(project.nextTaskNumber) < 1
+            ) {
+                throw new InvalidDatabaseImportError();
+            }
+            keys.add(project.key);
+        }
+        const invalidTask = imported
+            .prepare(
+                'SELECT 1 FROM tasks t JOIN projects p ON p.id = t.projectId WHERE typeof(t."number") != \'integer\' OR t."number" < 1 OR t."number" >= p."nextTaskNumber" UNION ALL SELECT 1 FROM tasks GROUP BY projectId, "number" HAVING COUNT(*) > 1 LIMIT 1',
+            )
+            .get();
+        if (invalidTask) throw new InvalidDatabaseImportError();
     } catch (error) {
         if (error instanceof InvalidDatabaseImportError) throw error;
         throw new InvalidDatabaseImportError();
@@ -249,6 +337,7 @@ const toLabel = (l: LabelRow): Label => ({ id: l.id, name: l.name, color: l.colo
 
 const toProject = (p: ProjectRow): Project => ({
     id: p.id,
+    key: p.key,
     title: p.title,
     description: p.description,
     done: Boolean(p.done),
@@ -260,6 +349,7 @@ const toProject = (p: ProjectRow): Project => ({
 const toTask = (t: TaskRow): Task => ({
     id: t.id,
     projectId: t.projectId,
+    number: t.number,
     title: t.title,
     description: t.description,
     status: t.status,
@@ -349,10 +439,26 @@ export async function getProject(id: number): Promise<Project | undefined> {
     return p ? toProject(p) : undefined;
 }
 
-export async function createProject(title: string, description: string, tags: string[]): Promise<Project> {
+export async function createProject(
+    title: string,
+    key: string,
+    description: string,
+    tags: string[],
+): Promise<Project | null> {
     const repo = await projects();
-    const saved = await repo.save(repo.create({ title, description, tags: await findOrCreateTags(tags) }));
-    return toProject(saved);
+    if (await repo.existsBy({ key })) return null;
+    try {
+        const saved = await repo.save(repo.create({ title, key, description, tags: await findOrCreateTags(tags) }));
+        return toProject(saved);
+    } catch (error) {
+        if (
+            error instanceof QueryFailedError &&
+            error.driverError instanceof Error &&
+            error.driverError.message === "UNIQUE constraint failed: projects.key"
+        )
+            return null;
+        throw error;
+    }
 }
 
 export async function updateProject(
@@ -362,11 +468,9 @@ export async function updateProject(
     const repo = await projects();
     const project = await repo.findOne({ where: { id }, relations: { tags: true } });
     if (!project) return undefined;
-    if (fields.title !== undefined) project.title = fields.title;
-    if (fields.description !== undefined) project.description = fields.description;
-    if (fields.done !== undefined) project.done = fields.done;
-    if (fields.tags !== undefined) project.tags = await findOrCreateTags(fields.tags);
-    return toProject(await repo.save(project));
+    const { tags, ...columns } = fields;
+    await repo.save({ id, ...columns, tags: tags === undefined ? undefined : await findOrCreateTags(tags) });
+    return toProject(await repo.findOneOrFail({ where: { id }, relations: { tags: true } }));
 }
 
 export async function deleteProject(id: number): Promise<void> {
@@ -416,19 +520,24 @@ export async function listTasks(projectId: number): Promise<Task[]> {
 }
 
 export async function createTask(projectId: number, title: string, description: string, status: Status): Promise<Task> {
-    const repo = await tasks();
-    const lastTask = await repo.findOne({ where: { projectId, status }, order: { sortOrder: "DESC" } });
-    return toTask(
-        await repo.save(
-            repo.create({
-                projectId,
-                title,
-                description,
-                status,
-                sortOrder: (lastTask?.sortOrder ?? -1) + 1,
-            }),
-        ),
-    );
+    const dataSource = await getDataSource();
+    const connection = nativeConnection(dataSource);
+    const create = connection.transaction(() => {
+        const project = connection
+            .prepare(
+                'UPDATE projects SET "nextTaskNumber" = "nextTaskNumber" + 1 WHERE id = ? RETURNING "nextTaskNumber" - 1 AS number',
+            )
+            .get(projectId) as { number: number } | undefined;
+        if (!project) throw new Error("Project not found.");
+        const result = connection
+            .prepare(
+                'INSERT INTO tasks (projectId, "number", title, description, status, sortOrder, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sortOrder), -1) + 1 FROM tasks WHERE projectId = ? AND status = ?), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+            )
+            .run(projectId, project.number, title, description, status, projectId, status);
+        return Number(result.lastInsertRowid);
+    });
+    const id = create.immediate();
+    return toTask(await dataSource.getRepository(TaskEntity).findOneByOrFail({ id }));
 }
 
 export async function reorderTasks(projectId: number, status: Status, taskIds: number[]): Promise<boolean> {

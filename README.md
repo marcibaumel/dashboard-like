@@ -1,5 +1,13 @@
 # dashboard-like
 
+## Project keys and task numbers
+
+Each project has a unique, permanent key, chosen when the project is created. Keys start with a
+letter and contain up to 10 letters or digits. Task identifiers combine this key with a
+project-local number, such as `SIR-1`. Numbers are assigned in creation order and are not reused
+when tasks are deleted. Existing projects receive generated keys and their tasks are numbered in
+creation order on upgrade. Older database backups are upgraded on import in the same way.
+
 ## Task checklists
 
 In a task's description, select **Add checklist**, type an item, and press Enter to add it. Keep typing

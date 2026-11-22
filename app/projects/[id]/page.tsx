@@ -22,13 +22,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                 <div>
                     <Heading>
                         {project.title}
+                        <Badge variant="outline">{project.key}</Badge>
                         {project.done && <Badge variant="secondary">Done</Badge>}
                     </Heading>
                     {project.description && <Subtitle>{project.description}</Subtitle>}
                 </div>
                 <ProjectSettings project={project} allTags={allTags} />
             </PageHeader>
-            <Board projectId={project.id} initialTasks={tasks} labels={project.labels} />
+            <Board projectId={project.id} projectKey={project.key} initialTasks={tasks} labels={project.labels} />
         </Main>
     );
 }

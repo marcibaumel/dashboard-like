@@ -30,6 +30,7 @@ export default function ProjectList({ projects, allTags }: { projects: ProjectWi
                 if (!q) return true;
                 return (
                     p.title.toLowerCase().includes(q) ||
+                    p.key.toLowerCase().includes(q) ||
                     p.description.toLowerCase().includes(q) ||
                     p.tags.some((t) => t.includes(q.replace(/^#/, "")))
                 );
@@ -103,6 +104,7 @@ export default function ProjectList({ projects, allTags }: { projects: ProjectWi
                                         <Link className={"projectTitleLink"} href={`/projects/${p.id}`}>
                                             {p.title}
                                         </Link>
+                                        <Badge variant="outline">{p.key}</Badge>
                                         {p.done && <Badge variant="secondary">Done</Badge>}
                                     </CardTitle>
                                     <CardDescription>{p.description}</CardDescription>

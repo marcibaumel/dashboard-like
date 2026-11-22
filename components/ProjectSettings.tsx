@@ -26,6 +26,7 @@ import type { Label as ProjectLabel } from "@/lib/types";
 interface Props {
     project: {
         id: number;
+        key: string;
         title: string;
         description: string;
         done: boolean;
@@ -101,6 +102,11 @@ export default function ProjectSettings({ project, allTags }: Props) {
                         onBlur={commitTitle}
                         onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), e.currentTarget.blur())}
                     />
+                </Field>
+
+                <Field>
+                    <Label htmlFor={`project-key-${project.id}`}>Project key</Label>
+                    <Input id={`project-key-${project.id}`} value={project.key} readOnly />
                 </Field>
 
                 <Field>

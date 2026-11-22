@@ -20,10 +20,12 @@ import {
 
 export default function Board({
     projectId,
+    projectKey,
     initialTasks,
     labels,
 }: {
     projectId: number;
+    projectKey: string;
     initialTasks: Task[];
     labels: Label[];
 }) {
@@ -138,7 +140,9 @@ export default function Board({
                                                 <CardContent>
                                                     <div>
                                                         <p className={"taskTitle"}>
-                                                            <span className={"taskId"}>#{task.id}</span>
+                                                            <span className={"taskId"}>
+                                                                {projectKey}-{task.number}
+                                                            </span>
                                                             {task.title}
                                                         </p>
                                                         {excerpt && <p className={"taskExcerpt"}>{excerpt}</p>}
@@ -186,6 +190,7 @@ export default function Board({
                 <TaskModal
                     key={selected.id}
                     task={selected}
+                    projectKey={projectKey}
                     labels={labels}
                     onClose={() => setSelectedId(null)}
                     onSaved={(updated) =>
