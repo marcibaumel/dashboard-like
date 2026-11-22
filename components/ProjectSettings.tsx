@@ -13,18 +13,33 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Field, Input, Label } from "@/components/ui/input";
-import { deleteProjectAction, renameProjectAction, setProjectDoneAction, setProjectTagsAction } from "@/lib/actions";
+import { Field, Input, Label, Textarea } from "@/components/ui/input";
+import {
+    deleteProjectAction,
+    renameProjectAction,
+    setProjectDescriptionAction,
+    setProjectDoneAction,
+    setProjectTagsAction,
+} from "@/lib/actions";
 import type { Label as ProjectLabel } from "@/lib/types";
 
 interface Props {
-    project: { id: number; title: string; done: boolean; tags: string[]; labels: ProjectLabel[] };
+    project: {
+        id: number;
+        title: string;
+        description: string;
+        done: boolean;
+        tags: string[];
+        labels: ProjectLabel[];
+    };
     allTags: string[];
 }
 
 export default function ProjectSettings({ project, allTags }: Props) {
     const [title, setTitle] = useState(project.title);
     const [draft, setDraft] = useState(project.title);
+    const [description, setDescription] = useState(project.description);
+    const [descriptionDraft, setDescriptionDraft] = useState(project.description);
     const [done, setDone] = useState(project.done);
     const [tags, setTags] = useState(project.tags);
     const [pending, startTransition] = useTransition();
@@ -36,6 +51,16 @@ export default function ProjectSettings({ project, allTags }: Props) {
             const saved = await renameProjectAction(project.id, next);
             setTitle(saved ?? title);
             setDraft(saved ?? title);
+        });
+    }
+
+    function commitDescription() {
+        const next = descriptionDraft.trim();
+        if (next === description) return;
+        startTransition(async () => {
+            const saved = await setProjectDescriptionAction(project.id, next);
+            setDescription(saved ?? description);
+            setDescriptionDraft(saved ?? description);
         });
     }
 
@@ -75,6 +100,18 @@ export default function ProjectSettings({ project, allTags }: Props) {
                         onChange={(e) => setDraft(e.target.value)}
                         onBlur={commitTitle}
                         onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), e.currentTarget.blur())}
+                    />
+                </Field>
+
+                <Field>
+                    <Label htmlFor={`project-description-${project.id}`}>Description</Label>
+                    <Textarea
+                        id={`project-description-${project.id}`}
+                        value={descriptionDraft}
+                        maxLength={1000}
+                        rows={3}
+                        onChange={(e) => setDescriptionDraft(e.target.value)}
+                        onBlur={commitDescription}
                     />
                 </Field>
 

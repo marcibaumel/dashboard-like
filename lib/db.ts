@@ -357,12 +357,13 @@ export async function createProject(title: string, description: string, tags: st
 
 export async function updateProject(
     id: number,
-    fields: { title?: string; done?: boolean; tags?: string[] },
+    fields: { title?: string; description?: string; done?: boolean; tags?: string[] },
 ): Promise<Project | undefined> {
     const repo = await projects();
     const project = await repo.findOne({ where: { id }, relations: { tags: true } });
     if (!project) return undefined;
     if (fields.title !== undefined) project.title = fields.title;
+    if (fields.description !== undefined) project.description = fields.description;
     if (fields.done !== undefined) project.done = fields.done;
     if (fields.tags !== undefined) project.tags = await findOrCreateTags(fields.tags);
     return toProject(await repo.save(project));

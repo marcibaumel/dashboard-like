@@ -42,6 +42,12 @@ export async function renameProjectAction(projectId: number, title: string): Pro
     return project?.title ?? null;
 }
 
+export async function setProjectDescriptionAction(projectId: number, description: string): Promise<string | null> {
+    const project = await db.updateProject(Number(projectId), { description: clean(description, 1000) });
+    refresh();
+    return project?.description ?? null;
+}
+
 export async function setProjectDoneAction(projectId: number, done: boolean): Promise<boolean> {
     const project = await db.updateProject(Number(projectId), { done: Boolean(done) });
     refresh();
