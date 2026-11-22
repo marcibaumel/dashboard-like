@@ -54,13 +54,9 @@ export function isLabelColor(value: unknown): value is LabelColor {
 /** Labels every project starts with; each project can then edit its own set. */
 export const DEFAULT_LABELS: { name: string; color: LabelColor }[] = [
     { name: "bug", color: "red" },
-    { name: "feature", color: "blue" },
-    { name: "enhancement", color: "cyan" },
     { name: "documentation", color: "purple" },
     { name: "question", color: "pink" },
-    { name: "help wanted", color: "green" },
     { name: "urgent", color: "orange" },
-    { name: "wontfix", color: "gray" },
 ];
 
 export interface Label {

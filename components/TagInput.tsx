@@ -80,7 +80,7 @@ export default function TagInput({ value, onChange, suggestions, name, id }: Pro
                     id={id}
                     value={query}
                     maxLength={MAX_TAG_LENGTH}
-                    placeholder={value.length ? "" : "Add tagsâ€¦"}
+                    placeholder={value.length ? "" : "Add tags"}
                     autoComplete="off"
                     onChange={(e) => {
                         setQuery(e.target.value);

@@ -45,7 +45,7 @@ export default function MarkdownField({
                         rows={8}
                         maxLength={5000}
                         placeholder={
-                            "Describe the taskâ€¦\n- [ ] checklist item\n**bold**, `code`, [links](https://â€¦)"
+                            "Describe the task"
                         }
                     />
                     <p className={"markdownHint"}>Markdown supported, including task lists (- [ ] item).</p>
