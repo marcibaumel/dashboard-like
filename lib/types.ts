@@ -20,6 +20,7 @@ export function isStatus(value: unknown): value is Status {
 }
 
 export const MAX_TAG_LENGTH = 30;
+export const MAX_TASK_DESCRIPTION_LENGTH = 5000;
 
 /** Canonical tag form so "Bug", "#bug " and "bug" are the same tag. */
 export function normalizeTag(raw: string): string {

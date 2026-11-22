@@ -8,6 +8,7 @@ import {
     isStatus,
     normalizeTags,
     MAX_LABEL_LENGTH,
+    MAX_TASK_DESCRIPTION_LENGTH,
     type Label,
     type LabelColor,
     type Status,
@@ -131,7 +132,7 @@ export async function updateTaskAction(
         patch.title = clean(fields.title, 200);
         if (!patch.title) return null;
     }
-    if (fields.description !== undefined) patch.description = clean(fields.description, 5000);
+    if (fields.description !== undefined) patch.description = clean(fields.description, MAX_TASK_DESCRIPTION_LENGTH);
     if (fields.status !== undefined) {
         if (!isStatus(fields.status)) return null;
         patch.status = fields.status;

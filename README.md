@@ -1,5 +1,11 @@
 # dashboard-like
 
+## Task checklists
+
+In a task's description, select **Add checklist**, type an item, and press Enter to add it. Keep typing
+and pressing Enter to add more items. Check items in the preview, then save the task to keep your
+changes. Checklists are stored as Markdown, so they can also be edited in the Write tab.
+
 ## Rebuild and restart
 
 On Linux with the `dashboard-like.service` user systemd service installed, run:

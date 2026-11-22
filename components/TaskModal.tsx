@@ -8,7 +8,16 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Field, Input, Label } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { deleteTaskAction, updateTaskAction } from "@/lib/actions";
-import { LABEL_COLORS, STATUSES, STATUS_LABELS, type Label as TaskLabel, type Status, type Task } from "@/lib/types";
+import { appendChecklistItem } from "@/lib/markdown";
+import {
+    LABEL_COLORS,
+    MAX_TASK_DESCRIPTION_LENGTH,
+    STATUSES,
+    STATUS_LABELS,
+    type Label as TaskLabel,
+    type Status,
+    type Task,
+} from "@/lib/types";
 
 interface Props {
     task: Task;
@@ -21,15 +30,17 @@ interface Props {
 export default function TaskModal({ task, labels, onSaved, onDeleted, onClose }: Props) {
     const [title, setTitle] = useState(task.title);
     const [description, setDescription] = useState(task.description);
+    const [checklistDraft, setChecklistDraft] = useState("");
     const [status, setStatus] = useState<Status>(task.status);
     const [labelIds, setLabelIds] = useState<number[]>(task.labelIds);
     const [busy, setBusy] = useState(false);
 
     async function save(e: React.FormEvent) {
         e.preventDefault();
-        if (!title.trim()) return;
+        const nextDescription = appendChecklistItem(description, checklistDraft);
+        if (!title.trim() || nextDescription.length > MAX_TASK_DESCRIPTION_LENGTH) return;
         setBusy(true);
-        const updated = await updateTaskAction(task.id, { title, description, status, labelIds });
+        const updated = await updateTaskAction(task.id, { title, description: nextDescription, status, labelIds });
         setBusy(false);
         if (updated) {
             onSaved(updated);
@@ -66,7 +77,13 @@ export default function TaskModal({ task, labels, onSaved, onDeleted, onClose }:
                     </Field>
                     <Field>
                         <Label htmlFor="task-description">Description</Label>
-                        <MarkdownField id="task-description" value={description} onChange={setDescription} />
+                        <MarkdownField
+                            id="task-description"
+                            value={description}
+                            onChange={setDescription}
+                            checklistDraft={checklistDraft}
+                            onChecklistDraftChange={setChecklistDraft}
+                        />
                     </Field>
                     <Field>
                         <Label>Status</Label>
@@ -119,7 +136,14 @@ export default function TaskModal({ task, labels, onSaved, onDeleted, onClose }:
                             <Button type="button" variant="outline" onClick={onClose}>
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={busy}>
+                            <Button
+                                type="submit"
+                                disabled={
+                                    busy ||
+                                    appendChecklistItem(description, checklistDraft).length >
+                                        MAX_TASK_DESCRIPTION_LENGTH
+                                }
+                            >
                                 Save
                             </Button>
                         </div>

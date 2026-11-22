@@ -2,6 +2,20 @@
 const TASK_ITEM = /^(\s*(?:>\s*)*(?:[-*+]|\d+[.)])\s+\[)([ xX])(\])/;
 const FENCE = /^\s*(```|~~~)/;
 
+export function appendChecklistItem(source: string, item: string): string {
+    const text = item.trim();
+    if (!text) return source;
+
+    const endsWithTask = /(?:^|\n)[ \t]*[-*+] \[[ xX]\] [^\n]*\n?$/.test(source);
+    const separator =
+        !source || source.endsWith("\n\n") || (endsWithTask && source.endsWith("\n"))
+            ? ""
+            : source.endsWith("\n") || endsWithTask
+              ? "\n"
+              : "\n\n";
+    return `${source}${separator}- [ ] ${text}`;
+}
+
 function taskLines(source: string): { index: number; checked: boolean }[] {
     const found: { index: number; checked: boolean }[] = [];
     let inFence = false;

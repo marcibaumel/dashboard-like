@@ -233,9 +233,15 @@
     gap: 6px;
 }
 
+.markdownToolbar,
 .markdownTabs {
     display: flex;
     gap: 4px;
+}
+
+.markdownToolbar {
+    align-items: center;
+    justify-content: space-between;
 }
 
 .markdownTab {
@@ -268,6 +274,28 @@
 }
 
 .markdownHint {
+    font-size: 12px;
+}
+
+.checklistComposer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.checklistComposerControls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.checklistComposerControls input {
+    min-width: 0;
+    flex: 1;
+}
+
+.checklistError {
+    color: var(--destructive);
     font-size: 12px;
 }
 
