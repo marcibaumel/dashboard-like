@@ -16,13 +16,17 @@ changes. Checklists are stored as Markdown, so they can also be edited in the Wr
 
 ## Rebuild and restart
 
-On Linux with the `dashboard-like.service` user systemd service installed, run:
+On Linux with the `dashboard-like.service` user systemd service installed, run this from the project directory:
 
 ```sh
-npm run rebuild:restart
+npm run restart
 ```
 
-The service is restarted only if the production build succeeds.
+This builds the current code and restarts the service only if the build succeeds. The existing
+`npm run rebuild:restart` command does the same thing. To restart without rebuilding, run
+`systemctl --user restart dashboard-like.service`.
+
+If you're running `npm run dev` in a terminal instead, stop it with Ctrl+C and run `npm run dev` again.
 
 ## SQLite backups
 

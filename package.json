@@ -6,6 +6,7 @@
         "dev": "next dev",
         "build": "next build",
         "rebuild:restart": "npm run build && systemctl --user restart dashboard-like.service",
+        "restart": "npm run rebuild:restart",
         "start": "next start",
         "lint": "eslint",
         "format": "prettier --write .",
